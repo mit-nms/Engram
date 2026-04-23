@@ -1,0 +1,64 @@
+# OpenEvolve config for Frontier-CS algorithmic/50
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Time Limit: 10s
+    Memory Limit: 1024M
+    
+    Firstly, you are given two integers n (1 <= n <= 400) and m (1 <= m <= 4000), which means that you have n elements and m sets.
+    
+    After that, there are m integers, the i-th integer is the cost of choosing the i-th set.
+    
+    After that, for the i-th element, firstly input an integer k_i, which means the number of sets that contain the element. After that, there
+    
+    are k_i integers, the j-th integer a_j means that the set with id a_j contains the element i.
+    
+    Find some sets so that each element belongs to at least one of these sets. You need to minimize the total cost of these sets. This value will determine your final score.
+    
+    Output: 
+    
+    Firstly output an integer |S|, which means the number of sets you choose. After that, output |S| ids of the sets you choose in another line.
+    
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 100
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

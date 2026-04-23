@@ -1,0 +1,235 @@
+# Configuration for function minimization example
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "INFO"
+
+# LLM configuration
+llm:
+  models:
+    # List of available models with their weights
+    - name: "o3"
+      weight: 1.0
+  temperature: 0.7 # Reduced from 0.95 for more focused generation
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    Design an efficient broadcast routing algorithm for multi-cloud data transfers. Use the Cloudcast simulator to evaluate your ideas.
+
+    ---
+
+    ## System Model
+
+    Here is how the broadcast routing works:
+
+    1. The system broadcasts data from a source node to multiple destination nodes across cloud networks.
+      - The source node needs to send data to all destination nodes.
+      - Data is split into `num_partitions` partitions (stripes) that can be routed independently.
+      - Each partition must reach every destination node.
+
+    2. The network is represented as a directed graph (G) with cloud regions as nodes.
+      - Nodes are formatted as `provider:region` (e.g., "aws:us-east-1", "gcp:europe-west1").
+      - Each edge has two key attributes:
+        - `cost`: Cost per GB to transfer data along this edge ($/GB).
+        - `throughput`: Maximum data transfer rate (Gbps).
+      - The graph contains 71 nodes across AWS, GCP, and Azure providers.
+
+    3. Each partition can be routed along different paths to reach each destination.
+      - A partition's path from source to a destination is a sequence of edges.
+      - Each edge tracks which partitions use it.
+
+    4. The system enforces ingress and egress limits per cloud provider.
+      - Ingress limit: Maximum incoming bandwidth per provider (Gbps). These values are given in the graph G.
+      - Egress limit: Maximum outgoing bandwidth per provider (Gbps). These values are given in the graph G.
+      - The limits can not be exceeded.
+      - Default limits: AWS ingress=10, egress=5; GCP ingress=16, egress=7; Azure ingress=16, egress=16 (per VM).
+
+    5. Transfer time is calculated based on bottleneck edges.
+      - For each destination, all partitions must complete transfer.
+      - Transfer time for a partition = max(time across all edges in its path).
+      - Edge transfer time = (number of partitions using edge) × (partition size in GB) × 8 / (edge flow rate in Gbps).
+      - Destination completion time = max(time across all its partitions).
+      - Overall transfer time = max(time across all destinations).
+
+    6. Cost includes egress costs and instance costs.
+      - Egress cost: Sum of (number of partitions using edge) × (partition size in GB) × (edge cost per GB) for all edges.
+      - Instance cost: VM costs for nodes that process data (typically charged per second based on transfer time).
+      - Total cost = egress cost + instance cost.
+
+    7. Problem parameters (used by simulator):
+      - Transfer size: Typically 300 GB total (split across partitions)
+      - Time budget: The simulator calculates transfer time based on bottlenecks
+      - Partition size: TRANSFER_SIZE / num_partitions (typically 300 / num_partitions GB)
+      - VM cost: Typically ~0.00015 $/second (0.54 $/hour)
+      - VM limit: Typically 2 VMs per region (provides egress_limit * 2 Gbps capacity)
+
+    ---
+
+    ## Objective
+
+    Design a solution that minimizes the total transfer cost while respecting throughput constraints and ingress/egress limits. The problem is formulated as a **constrained optimization problem** that requires mathematical optimization techniques (e.g., MILP) to find near-optimal solutions.
+
+    ---
+
+    ## Implementation
+
+    Your task is to implement a search algorithm function called `search_algorithm`.
+    This function finds paths for each partition to reach each destination node.
+    The function is called with the source node, destination nodes, network graph, and number of partitions.
+    It must return a `BroadCastTopology` object containing all the paths.
+
+    Function signature:
+    ```python
+    def search_algorithm(src: str, dsts: List[str], G: nx.DiGraph, num_partitions: int) -> BroadCastTopology:
+        """
+        Find broadcast paths for data partitions.
+        
+        Args:
+            src: Source node identifier (e.g., "aws:us-east-1")
+            dsts: List of destination node identifiers
+            G: NetworkX DiGraph with edges having 'cost' and 'throughput' attributes
+            num_partitions: Number of data partitions/stripes
+        
+        Returns:
+            BroadCastTopology object with paths for each partition to each destination
+        """
+        # Your implementation here
+    ```
+
+    The function should create and return a `BroadCastTopology` object. Here is how you construct it:
+
+    1. Create a BroadCastTopology instance:
+      ```python
+      bc_topology = BroadCastTopology(src, dsts, num_partitions)
+      ```
+
+    2. For each destination and each partition, add the path edges:
+      ```python
+      # Example: Adding a single edge to a partition's path
+      edge = [src_node, dst_node, G[src_node][dst_node]]  # Edge data includes cost and throughput
+      bc_topology.append_dst_partition_path(destination, partition_id, edge)
+      ```
+
+    3. The path structure in BroadCastTopology:
+      ```python
+      paths = {
+          "destination1": {
+              "0": [[src, node1, edge_data], [node1, dst, edge_data]],  # partition 0 path
+              "1": [[src, node2, edge_data], [node2, dst, edge_data]],  # partition 1 path
+              ...
+          },
+          "destination2": {
+              "0": [...],  # partition 0 path to destination2
+              ...
+          }
+      }
+      ```
+
+    ---
+
+    ## Graph API
+
+    Here is what you can access from the input graph `G`:
+
+    1. Graph structure:
+      ```python
+      G.nodes()                    # All nodes in the graph
+      G.edges()                    # All edges in the graph
+      G.has_edge(src, dst)         # Check if edge exists
+      G[src][dst]                  # Edge data dictionary with 'cost' and 'throughput'
+      G[src][dst]['cost']          # Cost per GB for this edge
+      G[src][dst]['throughput']    # Maximum throughput in Gbps for this edge
+      ```
+
+
+    2. Additional libraries available:
+      - `networkx` (as `nx`): Graph algorithms and data structures
+      - `pulp`: Linear programming and MILP solvers (LpProblem, LpVariable, LpMinimize, lpSum, LpBinary, LpInteger, PULP_CBC_CMD, etc.)
+      - `numpy` (as `np`): Numerical computations
+      - Standard Python libraries (json, os, math, itertools, etc.)
+
+    **Important**: The `pulp` library is specifically designed for optimization problems like this. It supports:
+    - Binary variables (edge selection)
+    - Integer variables (VM counts)
+    - Linear constraints (capacity limits, flow conservation)
+    - Mixed Integer Linear Programming (MILP) solvers
+
+    ---
+
+    ## CRITICAL: Optimization-First Approach
+
+    **This problem REQUIRES mathematical optimization (MILP) to reach expert-level performance.**
+
+    ### Full optimal MILP Formulation
+
+    This problem is an optimization problem. The can try and formulate the optimal for your understanding, but he issue is that although it's optimal, it is not tractable for large graphs.
+
+    ### The Approach You should take
+
+    1. **Try to formulate the optimal MILP formulation first**, even if it seems complex:
+      - Decision variables: edge selection (binary), VM counts (integer)
+      - Objective: minimize (egress_cost + instance_cost)
+      - Constraints: capacity limits, flow conservation, egress/ingress limits
+      - You can not run this code probably
+
+    2. **Then make it tractable**.
+
+    4. **DO NOT**:
+      - Jump straight to Steiner tree heuristics (they don't handle partition routing)
+      - Abandon optimization because "it's too slow" — try to approximate with relaxations
+      - Use greedy/shortest-path as your main solution
+
+
+    ### Expert Solution Characteristics
+
+    There is a human expert solution that has some approximations and has formulated the proble in a tractable optimization. It achieves score ~0.0023 (cost ~$419).
+
+    ---
+
+    **Important Notes**:
+    - **Per-partition variables**: Each partition `k` has its own edge variables `P[k,u,v]` because partitions route independently
+    - **Unit conversions**: Throughput is in Gbps, but constraints need GB. Convert: `capacity_GB = throughput_Gbps * TIME / 8`
+    - **Flow variables**: Used to ensure connectivity - each partition must reach all destinations
+    - **Scalability**: This full formulation may be slow.
+
+    ---
+
+    ## Important Notes
+
+    - The algorithm is evaluated across multiple configurations (intra-cloud and inter-cloud scenarios).
+    - All paths must be valid: they must reach the destination, use valid edges from the graph, and not modify edge attributes.
+
+    The combined_score = 1 / (1 + total_cost), so lower cost yields higher score.
+
+    ---
+
+    ## Goal
+
+    We know that an approximated tractable MILP solution with combined_score of 0.0023 (total cost ~$419) exists. The goal is to achieve an approximated MILP solution that acheives (or beats) this score.
+
+
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 60
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: true
+allow_full_rewrites: false

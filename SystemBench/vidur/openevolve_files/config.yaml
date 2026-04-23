@@ -1,0 +1,171 @@
+# OpenEvolve Default Configuration
+# This file contains all available configuration options with sensible defaults
+# You can use this as a template for your own configuration
+
+# General settings
+max_iterations: 120                 # Maximum number of evolution iterations
+checkpoint_interval: 1               # Save checkpoints every N iterations
+log_level: "DEBUG"                     # Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+log_dir: null                         # Custom directory for logs (default: output_dir/logs)
+random_seed: 42                       # Random seed for reproducibility (null = random, 42 = default)
+
+# Evolution settings
+diff_based_evolution: false            # Use diff-based evolution (true) or full rewrites (false), default is True
+
+# LLM configuration
+llm:
+  # Models for evolution
+  models:
+    # List of available models with their weights
+    - name: "o3"
+      weight: 1.0
+
+  # Generation parameters
+  temperature: 1.0                   # Temperature for generation (higher = more creative)
+  top_p: 0.95                         # Top-p sampling parameter
+  max_tokens: 16384
+  timeout: 300  
+  retries: 5                   # Maximum tokens to generate
+
+# Prompt configuration
+prompt:
+  template_dir: null                  # Custom directory for prompt templates
+  system_message: |
+      Please implement a scheduler for a LLM inference cluster.
+
+      System Model:
+      Here is how the load balance works:
+
+      1. The load balancer manages a number of LLM serving nodes called `replica_scheduler`s.
+        - The load balancer routes requests to any of these replicas.
+        - The load balancer must eventually route all requests.
+
+      2. The load balancer makes routing decisions per each request. The load balancer knows these three key properties per request:
+        - `_arrived_at`: When the request was received at the load balancer.
+        - `_num_prefill_tokens`: number of tokens to prefill.
+        - `num_processed_tokens`: number of tokens that have been processed so far.
+        - A request has some number of decode tokens but this is not known until the request is completed.
+
+      3. Each replica maintains two queues: `pending_queue` and `active_queue`.
+        - `pending_queue` contains requests where the prefill has not started. `num_processed_tokens` is 0 and there is no memory allocated in the GPU for these requests.
+        - `active_queue` contains requests that are currently being processed. `num_processed_tokens > 0` and some memory is allocated in the GPU for these requests. If `num_processed_tokens < num_prefill_tokens`, the request is still in the prefill phase. Otherwise, the request is in the decode phase.
+        - A request cannot be in both queues at the same time.
+
+      4. Each replica has to allocate memories for requests currently being processed, in the `active_queue`, in blocks (16 tokens at a time).
+        - In case there is no memory left at a replica for continuing decoding of active requests, replicas will evict newer requests to free memory for earlier requests.
+        - This removes the request from the 'active_queue', frees its allocated memory, resets its state, and adds it to the 'pending_queue'.
+        - If the evicted request was in the decode phase, the 'num_prefill_tokens' is updated to 'num_processed_tokens'.
+
+      5. The load balancer can observe the current state of all replicas, meaning all requests in `pending_queue` and `active_queue` of each replica.
+
+      Objective:
+      Design a solution that Minimize the average request completion time across all requests.
+
+
+      Implementation:
+      Please implement the following according to the specifications:
+
+      Your task is to implement a custom load balancer by inheriting from BaseGlobalScheduler.
+      To achieve this, you will implement the `schedule` function of this class.
+      This function is called everytime 1) a new request has arrived, or 2) a replica has finished a request.
+      To return the routing decisions, this function should return a list of tuples. Each tuple consists of 1) the id number of the replica to route to and 2) the request to be routed `(replica_id, request)`.
+      Note that routed requests should be popped from `self._request_queue`.
+      Do not change the properties of requests or replicas.
+
+      Here is how you can access some helpful metrics to guide the decision-making process.
+
+      1. The CustomGlobalScheduler you will implement can see the following elements from a parent class (BaseGlobalScheduler):
+        ```python
+        _request_queue: List[Request]                               # queue of pending requests waiting to be routed
+        _num_replicas: int                                          # number of available replicas with IDs `0` to `self._num_replicas-1`
+        _replica_schedulers: Dict[int, ReplicaScheduler]            # maps replica IDs to replica objects
+        ```
+
+      2. Each replica in `_replica_schedulers` is a `ReplicaScheduler` object, and has the following READ-ONLY properties:
+        ```python
+        replica_id: int                                             # unique replica id
+        memory_usage_percent: float                                 # percentage of memory allocated to requests currently being processed
+        num_blocks: int                                             # number of total blocks available for allocation
+        num_allocated_blocks: int                                   # number of blocks allocated to currently running requests
+        block_size: int                                             # Number of tokens per each allocated block
+        pending_queue: List[Request]                                # list of requests that have not yet begun processing
+        active_queue: List[Request]                                 # list of requests that are currently being processed
+        ```
+
+      3. Each request has the following READ-ONLY properties:
+        ```python
+        arrived_at: float                                           # arrival time
+        num_prefill_tokens: int                                     # number of prefill tokens
+        num_processed_tokens: int                                   # number of tokens processed so far
+        num_restarts: int                                           # number of times request was evicted
+        ```
+
+      Now, implement the load balancer, i.e., CustomGlobalScheduler. Only output the full code for the CustomGlobalScheduler class.
+
+      ```python
+      class CustomGlobalScheduler(BaseGlobalScheduler):
+          """Custom global scheduler for LLM inference
+
+          Required methods:
+              - schedule
+          """
+          # Your implementation here
+
+      ```
+
+      Guidelines:
+
+      To design the algorithm, first consider the requirements and system model carefully to develop an overall strategy. Then, implement your solution.
+
+  # Number of examples to include in the prompt
+  num_top_programs: 3                 # Number of top-performing programs to include
+  num_diverse_programs: 2             # Number of diverse programs to include
+
+  # Template stochasticity
+  use_template_stochasticity: false    # Use random variations in templates for diversity
+  # template_variations:                # Different phrasings for parts of the template
+  #   improvement_suggestion:
+  #     - "Here's how we could improve this code:"
+  #     - "I suggest the following improvements:"
+  #     - "We can enhance this code by:"
+
+  # Artifact rendering
+  include_artifacts: true             # Include execution outputs/errors in prompt
+  # max_artifact_bytes: 20480           # Maximum artifact size in bytes (20KB default)
+  # artifact_security_filter: true      # Apply security filtering to artifacts
+
+# Database configuration
+database:
+
+  # Evolutionary parameters
+  population_size: 500               # Maximum number of programs to keep in memory
+  archive_size: 100                   # Size of elite archive
+  num_islands: 6                     # Number of islands for island model (separate populations)
+
+  # Selection parameters
+  elite_selection_ratio: 0.3          # Ratio of elite programs to select
+  exploration_ratio: 0.6              # Ratio of exploration vs exploitation
+  exploitation_ratio: 0.4             # Ratio of exploitation vs random selection
+  # Note: diversity_metric is fixed to "edit_distance" (feature_based not implemented)
+
+  # Feature map dimensions for MAP-Elites
+  # Default if not specified: ["complexity", "diversity"]
+  
+  
+# Evaluator configuration
+evaluator:
+  # General settings
+  timeout: 300                        # Maximum evaluation time in seconds
+  max_retries: 3                      # Maximum number of retries for evaluation
+
+
+  # Evaluation strategies
+  cascade_evaluation: false            # Use cascade evaluation to filter bad solutions early
+
+  # Parallel evaluation
+  parallel_evaluations: 1             # Number of parallel evaluations
+  # Note: distributed evaluation is not yet implemented
+
+  # LLM-based feedback (experimental)
+  use_llm_feedback: false                # Use LLM to evaluate code quality
+  # llm_feedback_weight: 0.0            # Weight for LLM feedback in final score

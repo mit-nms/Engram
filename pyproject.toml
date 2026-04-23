@@ -1,0 +1,3 @@
+[tool.black]
+line-length = 120
+#target-version = ['py310'] TODO: set this to minimum supported

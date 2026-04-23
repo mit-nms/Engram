@@ -1,0 +1,96 @@
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  unit-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+
+      - name: Run unit tests
+        env:
+          OPENAI_API_KEY: test  # Mock API key for unit tests
+        run: |
+          # Run unit tests (all tests except integration/)
+          python -m unittest discover -s tests -p "test_*.py" -v
+          
+  integration-tests:
+    needs: unit-tests  # Only run if unit tests pass
+    runs-on: ubuntu-latest
+    timeout-minutes: 30  # Limit integration tests to 30 minutes
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Cache pip packages
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -e ".[dev]"
+          pip install optillm
+
+      - name: Start optillm server
+        run: |
+          echo "Starting optillm server for integration tests..."
+          OPTILLM_API_KEY=optillm HF_TOKEN=${{ secrets.HF_TOKEN }} optillm --model google/gemma-3-270m-it --port 8000 &
+          echo $! > server.pid
+          
+          # Wait for server to be ready
+          echo "Waiting for server to start..."
+          sleep 15
+          
+          # Test server health
+          curl -s http://localhost:8000/health || echo "Server health check failed"
+        env:
+          OPTILLM_API_KEY: optillm
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+
+      - name: Run integration tests (excluding slow tests)
+        env:
+          OPENAI_API_KEY: optillm
+          OPTILLM_API_KEY: optillm
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          # Run only fast integration tests, skip slow tests that require real LLM
+          pytest tests/integration -v --tb=short -m "not slow"
+          
+      - name: Stop optillm server
+        if: always()
+        run: |
+          if [ -f server.pid ]; then
+            kill $(cat server.pid) || true
+            rm server.pid
+          fi
+          pkill -f "optillm.*8000" || true
