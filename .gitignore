@@ -187,6 +187,11 @@ scripts/*/
 *.json
 *.pkl
 
+# Track only the requirements files needed to install this repo
+# (per README.md: root requirements.txt + SystemBench/vidur/requirement.txt)
+!/requirements.txt
+!SystemBench/vidur/requirement.txt
+
 # Compiled DSL prompt artifacts
 *_prompts/
 

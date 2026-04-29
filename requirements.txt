@@ -1,0 +1,38 @@
+# Core -- needed to run any optimization method
+click==8.3.1
+numpy==2.4.2
+openai==2.20.0
+rich==14.3.2
+tqdm==4.67.3
+tenacity==9.1.4
+termcolor==3.3.0
+pandas==2.3.3
+matplotlib==3.10.8
+networkx==3.6.1
+pyyaml==6.0.3
+
+# Agent framework (Engram, single agent, subagent, DeepAgents methods)
+deepagents==0.4.1
+langchain==1.2.10
+langchain-core==1.2.11
+langchain-openai==1.1.9
+langgraph==1.0.8
+# Transitive pins required for a compatible install on a fresh environment;
+# pip otherwise resolves newer versions that are incompatible with langgraph==1.0.8.
+langgraph-prebuilt==1.0.7
+langgraph-checkpoint==4.0.0
+langgraph-sdk==0.3.5
+anthropic==0.79.0
+
+# OpenEvolve method -- installed separately via the README setup steps:
+#   pip install -e Architect/openevolve/
+
+# Benchmark-specific (needed for individual SystemBench problems)
+colorama==0.4.6          # cloudcast
+graphviz==0.21           # cloudcast
+pulp==3.3.0              # cloudcast
+scikit-learn==1.8.0      # cloudcast
+torch==2.10.0            # eplb, sparse_attention, hp_quantization
+configargparse           # cant-be-late
+scipy==1.17.0            # cant-be-late, plotting scripts
+seaborn==0.13.2          # plotting scripts
