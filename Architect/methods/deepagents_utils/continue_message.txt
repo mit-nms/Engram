@@ -1,0 +1,2 @@
+Continue working on the task and improve the performance. After making changes to code, ALWAYS use the run_simulation tool to test and validate your changes. Remember: make changes, then test with run_simulation to see if the improvements work.
+

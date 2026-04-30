@@ -1,0 +1,7 @@
+[submodule "SystemBench/vidur/vidur_repo"]
+	path = SystemBench/vidur/vidur_repo
+	url = https://github.com/mit-nms/vidur_simulator
+	branch = glia_compat
+[submodule "SystemBench/FrontierCS/frontier_cs_repo"]
+	path = SystemBench/FrontierCS/frontier_cs_repo
+	url = https://github.com/FrontierCS/Frontier-CS.git

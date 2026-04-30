@@ -1,0 +1,231 @@
+Design an efficient broadcast routing algorithm for multi-cloud data transfers. Use the Cloudcast simulator to evaluate your ideas.
+
+---
+
+## System Model
+
+Here is how the broadcast routing works:
+
+1. The system broadcasts data from a source node to multiple destination nodes across cloud networks.
+  - The source node needs to send data to all destination nodes.
+  - Data is split into `num_partitions` partitions (stripes) that can be routed independently.
+  - Each partition must reach every destination node.
+
+2. The network is represented as a directed graph (G) with cloud regions as nodes.
+  - Nodes are formatted as `provider:region` (e.g., "aws:us-east-1", "gcp:europe-west1").
+  - Each edge has two key attributes:
+    - `cost`: Cost per GB to transfer data along this edge ($/GB).
+    - `throughput`: Maximum data transfer rate (Gbps).
+  - The graph contains 71 nodes across AWS, GCP, and Azure providers.
+
+3. Each partition can be routed along different paths to reach each destination.
+  - A partition's path from source to a destination is a sequence of edges.
+  - Each edge tracks which partitions use it.
+
+4. The system enforces ingress and egress limits per cloud provider.
+  - Ingress limit: Maximum incoming bandwidth per provider (Gbps). These values are given in the graph G.
+  - Egress limit: Maximum outgoing bandwidth per provider (Gbps). These values are given in the graph G.
+  - The limits can not be exceeded.
+  - Default limits: AWS ingress=10, egress=5; GCP ingress=16, egress=7; Azure ingress=16, egress=16 (per VM).
+
+5. Transfer time is calculated based on bottleneck edges.
+  - For each destination, all partitions must complete transfer.
+  - Transfer time for a partition = max(time across all edges in its path).
+  - Edge transfer time = (number of partitions using edge) × (partition size in GB) × 8 / (edge flow rate in Gbps).
+  - Destination completion time = max(time across all its partitions).
+  - Overall transfer time = max(time across all destinations).
+
+6. Cost includes egress costs and instance costs.
+   - Egress cost: Sum of (number of partitions using edge) × (partition size in GB) × (edge cost per GB) for all edges.
+   - Instance cost: VM costs for nodes that process data (typically charged per second based on transfer time).
+   - Total cost = egress cost + instance cost.
+
+7. Problem parameters (used by simulator):
+   - Transfer size: Typically 300 GB total (split across partitions)
+   - Time budget: The simulator calculates transfer time based on bottlenecks
+   - Partition size: TRANSFER_SIZE / num_partitions (typically 300 / num_partitions GB)
+   - VM cost: Typically ~0.00015 $/second (0.54 $/hour)
+   - VM limit: Typically 2 VMs per region (provides egress_limit * 2 Gbps capacity)
+
+---
+
+## Objective
+
+Design a solution that minimizes the total transfer cost while respecting throughput constraints and ingress/egress limits. The problem is formulated as a **constrained optimization problem** that requires mathematical optimization techniques (e.g., MILP) to find near-optimal solutions.
+
+---
+
+## Implementation
+
+Your task is to implement a search algorithm function called `search_algorithm`.
+This function finds paths for each partition to reach each destination node.
+The function is called with the source node, destination nodes, network graph, and number of partitions.
+It must return a `BroadCastTopology` object containing all the paths.
+
+Function signature:
+```python
+def search_algorithm(src: str, dsts: List[str], G: nx.DiGraph, num_partitions: int) -> BroadCastTopology:
+    """
+    Find broadcast paths for data partitions.
+    
+    Args:
+        src: Source node identifier (e.g., "aws:us-east-1")
+        dsts: List of destination node identifiers
+        G: NetworkX DiGraph with edges having 'cost' and 'throughput' attributes
+        num_partitions: Number of data partitions/stripes
+    
+    Returns:
+        BroadCastTopology object with paths for each partition to each destination
+    """
+    # Your implementation here
+```
+
+The function should create and return a `BroadCastTopology` object. Here is how you construct it:
+
+1. Create a BroadCastTopology instance:
+   ```python
+   bc_topology = BroadCastTopology(src, dsts, num_partitions)
+   ```
+
+2. For each destination and each partition, add the path edges:
+   ```python
+   # Example: Adding a single edge to a partition's path
+   edge = [src_node, dst_node, G[src_node][dst_node]]  # Edge data includes cost and throughput
+   bc_topology.append_dst_partition_path(destination, partition_id, edge)
+   ```
+
+3. The path structure in BroadCastTopology:
+   ```python
+   paths = {
+       "destination1": {
+           "0": [[src, node1, edge_data], [node1, dst, edge_data]],  # partition 0 path
+           "1": [[src, node2, edge_data], [node2, dst, edge_data]],  # partition 1 path
+           ...
+       },
+       "destination2": {
+           "0": [...],  # partition 0 path to destination2
+           ...
+       }
+   }
+   ```
+
+---
+
+## Graph API
+
+Here is what you can access from the input graph `G`:
+
+1. Graph structure:
+   ```python
+   G.nodes()                    # All nodes in the graph
+   G.edges()                    # All edges in the graph
+   G.has_edge(src, dst)         # Check if edge exists
+   G[src][dst]                  # Edge data dictionary with 'cost' and 'throughput'
+   G[src][dst]['cost']          # Cost per GB for this edge
+   G[src][dst]['throughput']    # Maximum throughput in Gbps for this edge
+   ```
+
+2. Additional libraries available:
+   - `networkx` (as `nx`): Graph algorithms and data structures
+   - `pulp`: Linear programming and MILP solvers (LpProblem, LpVariable, LpMinimize, lpSum, LpBinary, LpInteger, PULP_CBC_CMD, etc.)
+   - `numpy` (as `np`): Numerical computations
+   - Standard Python libraries (json, os, math, itertools, etc.)
+
+**Important**: The `pulp` library is specifically designed for optimization problems like this. It supports:
+- Binary variables (edge selection)
+- Integer variables (VM counts)
+- Linear constraints (capacity limits, flow conservation)
+- Mixed Integer Linear Programming (MILP) solvers
+
+---
+
+## CRITICAL: Optimization-First Approach
+
+**This problem REQUIRES mathematical optimization (MILP) to reach expert-level performance.**
+
+### Full optimal MILP Formulation (`optimal.py`)
+
+This problem is an optimization problem. The full code to the optimal formulation is given in `optimal.py`. You can take a look at this code to see how the constaints are implemented.
+The issue with this code is that although it's optimal, it is not tractable for large graphs.
+
+### The Approach You should take
+
+1. **Look at the optimal MILP formulation in `optimal.py` first**, even if it seems complex:
+   - Decision variables: edge selection (binary), VM counts (integer)
+   - Objective: minimize (egress_cost + instance_cost)
+   - Constraints: capacity limits, flow conservation, egress/ingress limits
+
+2. **Then make it tractable**.
+
+3. **DO NOT**:
+   - Jump straight to Steiner tree heuristics (they don't handle partition routing)
+   - Abandon optimization because "it's too slow" — try to approximate with relaxations
+   - Use greedy/shortest-path as your main solution
+
+
+### Expert Solution Characteristics
+
+There is a human expert solution that has some approximations and has formulated the proble in a tractable optimization. It achieves score ~0.0023 (cost ~$419).
+
+---
+
+**Important Notes**:
+- **Per-partition variables**: Each partition `k` has its own edge variables `P[k,u,v]` because partitions route independently
+- **Unit conversions**: Throughput is in Gbps, but constraints need GB. Convert: `capacity_GB = throughput_Gbps * TIME / 8`
+- **Flow variables**: Used to ensure connectivity - each partition must reach all destinations
+- **Scalability**: This full formulation may be slow.
+
+---
+
+## Important Notes
+
+- As a reference, take a look at the initial implementation in the file `/initial_program.py`.
+- Put your implementation in the file `/new_algorithm.py`.
+- You do not need to import the classes, the `run_simulation` tool will import the necessary classes (BroadCastTopology, networkx, etc.) for you. ONLY OUTPUT THE CODE FOR THE `search_algorithm` FUNCTION.
+- **CRITICAL**: The `run_simulation` tool is a DIRECT TOOL - call it directly using `run_simulation(file_path="/new_algorithm.py")`. Do NOT use the shell tool to run it.
+- After running `run_simulation`, the metrics files will be written as `/aggregated_output.csv` in the simulator output directory.
+- The simulation result file contains detailed metrics per configuration. Use `read_file` with a limit to read them if they're large.
+- You can use the `shell` tool to analyze the results from the CSV file using bash commands (but NOT to run run_simulation).
+- The algorithm is evaluated across multiple configurations (intra-cloud and inter-cloud scenarios).
+- All paths must be valid: they must reach the destination, use valid edges from the graph, and not modify edge attributes.
+
+The aggregated_output.csv file provides the following information per configuration: config_name, max_transfer_time, avg_transfer_time, tot_cost, validity_percentage, and other metrics. The combined_score = 1 / (1 + total_cost), so lower cost yields higher score.
+
+---
+
+## Debugging Tips
+
+When your MILP isn't working:
+
+1. **Check solver status**: `prob.status` tells you if it's Optimal, Infeasible, or timed out
+2. **Print constraint violations**: Add slack variables to identify which constraints are too tight
+3. **Try to approximate with relaxations**
+4. **Add time limits**: `PULP_CBC_CMD(timeLimit=60)` prevents infinite solving
+5. **Verify the solution**: Check that the paths you build actually satisfy the constraints
+6. **Use approximation as fallback, but log it**:
+   ```python
+   if prob.status != LpStatusOptimal:
+       print("WARNING: Solver did not find optimal, using approximation")
+       print(f"Solver status: {prob.status}, time: {prob.solutionTime:.2f}s")
+       # Use the best solution found so far, or a fast heuristic
+   ```
+---
+
+## Goal
+
+We know that an approximated tractable MILP solution with combined_score of 0.0023 (total cost ~$419) exists. The goal is to achieve an approximated MILP solution that acheives (or beats) this score.
+
+---
+
+## Important: You are continuing from previous work
+
+The summary above shows what previous agents have tried. Use this information to:
+1. Avoid repeating dead ends
+2. Build on promising approaches
+3. Try new directions that haven't been explored
+
+When you finish, include a "Summary for Next Agent" section in your final response with:
+- What you tried and the results
+- Key insights you discovered
+- Recommended next steps
+- Any dead ends to avoid

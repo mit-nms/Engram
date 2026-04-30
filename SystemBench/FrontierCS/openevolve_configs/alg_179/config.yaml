@@ -1,0 +1,93 @@
+# OpenEvolve config for Frontier-CS algorithmic/179
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    # Subset Sum
+    
+    ## Problem
+    
+    You are given a multiset of non-negative integers.
+    Your task is to choose a subset whose sum is as close as possible to a given target value W.
+    
+    This is the classic Subset Sum problem, evaluated with a soft scoring rule.
+    
+    ## Input Format
+    
+    - Line 1: two integers n and W
+      (1 ≤ n ≤ 2100)
+    - Line 2: n integers a₁, a₂, ..., aₙ
+      - aᵢ ≥ 0
+      - All numbers (including W and aᵢ) can be up to 10^1100.
+    
+    ## Output Format
+    
+    - Output exactly one line:
+      - n integers b₁, b₂, ..., bₙ
+      - each bᵢ ∈ {0, 1}
+      - bᵢ = 1 means aᵢ is selected into the subset
+      - bᵢ = 0 means aᵢ is not selected
+    
+    ## Scoring
+    
+    Let:
+    
+    - S = sum of all aᵢ where bᵢ = 1
+    - M = max(aᵢ) over all i
+    
+    Your goal is to make S as close to W as possible.
+    
+    Score is defined as:
+    
+      score = max(0, 1 - |W - S| / (W + M))
+    
+    Notes:
+    - The score is always in the range [0, 1]
+    - Achieving S = W yields score = 1
+    - Any valid output is accepted and scored
+    
+    ## Hint
+    
+    - Large integer arithmetic may be required
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

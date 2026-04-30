@@ -1,0 +1,38 @@
+# OpenEvolve Configuration with Early Stopping Example
+# This configuration demonstrates how to use the early stopping feature
+
+# Basic settings
+max_iterations: 1000
+checkpoint_interval: 50
+log_level: "INFO"
+
+# Early stopping configuration - stops evolution if no improvement for 30 iterations
+early_stopping_patience: 30          # Stop after 30 iterations without improvement
+convergence_threshold: 0.01          # Minimum improvement of 0.01 required to reset patience
+early_stopping_metric: "combined_score"  # Track the combined_score metric
+
+# LLM configuration
+llm:
+  models:
+    - name: "gpt-4o-mini"
+      weight: 1.0
+  
+  api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  max_tokens: 4096
+
+# Database configuration
+database:
+  population_size: 50
+  num_islands: 3
+  migration_interval: 20
+
+# Evaluation settings
+evaluator:
+  timeout: 60
+  max_retries: 2
+  parallel_evaluations: 2
+
+# Evolution settings
+diff_based_evolution: true
+max_code_length: 8000

@@ -1,0 +1,11 @@
+**IMPORTANT NOTES:**
+- A request has some number of decode tokens but this is not known until the request is completed.
+- You have a tool called `run_simulation` available. Call it directly as a tool with the file_path argument, e.g., run_simulation with file_path="/custom_scheduler.py"
+- Do NOT grep or search for run_simulation in files - it is a tool you can call directly, like ls, grep, or shell.
+- You do not need to import the classes, the `run_simulation` tool will import the classes for you. ONLY OUTPUT THE CODE FOR THE `CustomGlobalScheduler` CLASS.
+- After running `run_simulation`, the metrics files will be written as `/request_metrics{random_number}.csv`.
+- The simulation result file is big, so use `read_file` with a limit to read them. 
+- You can use the `shell` tool to analyze the results from the CSV file using bash commands.
+- Do NOT respond until the idea has been adequately explored, the code has no logical inconsistencies, and sufficient simulations have been run.
+
+The CSV file provides the following information per request: ['Request Id', 'request_e2e_time', 'request_e2e_time_normalized', 'request_execution_time', 'request_execution_time_normalized', 'request_model_execution_time', 'request_model_execution_time_normalized', 'request_preemption_time', 'request_scheduling_delay', 'request_execution_plus_preemption_time', 'request_execution_plus_preemption_time_normalized', 'prefill_e2e_time', 'prefill_time_execution_plus_preemption', 'prefill_time_execution_plus_preemption_normalized', 'decode_time_execution_plus_preemption_normalized', 'request_inter_arrival_delay', 'request_num_tokens', 'request_num_prefill_tokens', 'request_num_decode_tokens', 'request_pd_ratio', 'request_num_restarts']

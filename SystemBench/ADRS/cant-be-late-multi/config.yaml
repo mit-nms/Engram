@@ -1,0 +1,134 @@
+# The initial program to start the evolution from.
+initial_program_path: openevolve_multi_region_strategy/initial_program.py
+
+log_level: "INFO"
+# The target file that the LLM will modify.
+evaluation_target_program_path: openevolve_multi_region_strategy/initial_program.py
+
+# The language of the program to be evolved.
+language: python
+
+# This is a top-level setting that controls the evolution mechanism.
+diff_based_evolution: false
+
+# LLM Configuration
+# llm:
+#   models:
+#     - name: "gemini-2.5-pro"
+#       weight: 1.0  # Lower weight for the conservative model
+#       api_base: "https://generativelanguage.googleapis.com/v1beta/openai/"
+#       api_key: ${GEMINI_API_KEY}
+#   temperature: 0.75  # Increased temperature for more creativity
+#   top_p: 0.95
+#   max_tokens: 32000
+#   timeout: 300
+llm:
+  models:
+    # List of available models with their weights
+    - name: "o3"
+      weight: 1.0
+  temperature: 0.7 # Reduced from 0.95 for more focused generation
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+prompt:
+  system_message: |-
+    You are an expert in cloud cost optimization. Your task is to evolve a Python strategy class to minimize the cost of completing a task under a deadline.
+
+    **CRITICAL INSTRUCTIONS:**
+    1.  **STRICTLY ADHERE TO THE API:** You MUST only use the attributes and methods explicitly listed below. DO NOT invent or guess any other function names (e.g., `get_all_region_infos` is FORBIDDEN).
+    2.  **RESPECT OBJECT LIFECYCLE:**
+        - **WARNING:** In `__init__(self, args)`, you can ONLY initialize state variables (e.g., `self.my_list = []`).
+        - You CANNOT access `self.env` or `self.task` in `__init__` because they are not yet available. They are initialized later by the system.
+        - All logic that uses `self.env` or `self.task` MUST be within the `_step` method or other helper methods called by `_step`.
+    3.  **FOCUS ON `_step`:** Your primary goal is to evolve the logic inside the `_step` method.
+
+    ---
+    **THE HIDDEN RULE: The `_apply_strong_guarantee` Override**
+    ---
+    **THIS IS THE MOST IMPORTANT RULE.** A hidden function, `_apply_strong_guarantee`, runs *after* your `_step` method and can **override** your decision. Your strategy will be much more successful if you understand and respect this rule.
+
+    **The Rule's Logic:**
+    The system calculates if the remaining task time (`remaining_task_time`) can be completed within the remaining time before the deadline (`remaining_time`).
+    - `remaining_task_time` includes the actual work left AND any overheads for restarting.
+    - `remaining_time` is the time left until the deadline.
+
+    **When the Override is Triggered:**
+    If `remaining_task_time >= remaining_time`, the situation is critical. The system will **FORCE** the decision to `ClusterType.ON_DEMAND` to guarantee progress, **regardless of what your `_step` method returned**.
+
+    **How to Write a Better Strategy:**
+    - **DO NOT** try to re-implement this logic.
+    - **DO** internalize this rule. Your goal is to create a strategy that is smart enough to **avoid triggering the override**.
+    - A good strategy senses when the deadline is approaching and proactively chooses `ON_DEMAND` *before* the strong guarantee has to take over. This gives you more control and leads to better overall costs.
+    - Use the "Adaptive Urgency" hint below. It is the key to respecting this hidden rule.
+
+    ---
+    **AVAILABLE API & CONTEXT**
+    ---
+
+    **`self` (The Strategy Object):**
+    - Inherits from `MultiRegionStrategy`.
+    - **`self.task_duration` (float):** The total seconds of computation required for the entire task. Available only after initialization.
+    - **`self.deadline` (float):** The deadline in seconds. Available only after initialization.
+    - **`self.task_done_time` (list[float]):** A list tracking the seconds of work completed. Use `sum(self.task_done_time)` to get total progress.
+
+    **`self.env` (The Environment):**
+    - **`self.env.elapsed_seconds` (float):** Total time passed in the simulation.
+    - **`self.env.get_num_regions() -> int`:** Returns the total number of available regions.
+    - **`self.env.get_current_region() -> int`:** Returns the index of the region you are currently in.
+    - **`self.env.spot_available() -> bool`:** Returns `True` if a spot instance is available in the CURRENT region.
+    - **`self.env.switch_region(region_idx: int)`:** ACTION: Switches focus to a new region. The new region's state will be available in the *next* time step.
+
+    **`self.task` (The Task Object):**
+    - **`self.task.is_done` (bool):** Returns `True` if the entire task is complete.
+    - **`self.task.get_info() -> dict`:** Returns a dictionary with details about the current task. For `ChainedTask`, it includes `'current_sub_task_index'`.
+
+    **`_step(self, last_cluster_type: ClusterType, has_spot: bool)` Method:**
+    - This is your main decision point, called once per time tick.
+    - `has_spot` tells you the spot availability in your CURRENT region ONLY.
+    - You must return a `ClusterType` (`SPOT`, `ON_DEMAND`, or `NONE`).
+    - To EXPLORE: Return `ClusterType.NONE` for the current tick and call `self.env.switch_region(...)` to prepare for the next tick.
+
+    ---
+    **ADVANCED HINTS FOR EVOLUTION**
+    ---
+    1.  **SMARTER EXPLORATION & CACHING (Track Historical Data):** Don't just cycle regions sequentially (`+1`). A superior strategy remembers what it has learned. In `__init__`, create a dictionary like `self.region_cache = {}` to store the last known state of each region. Use this cache to make intelligent decisions about which region to explore next, avoiding regions that were recently unavailable.
+    2.  **ADAPTIVE URGENCY:** Your strategy must be aware of how much time is left. Calculate a "pressure" or "urgency" metric. A simple way is to compare task progress with time elapsed: `progress = sum(self.task_done_time) / self.task_duration` vs `time_gone = self.env.elapsed_seconds / self.deadline`. If `progress < time_gone`, you are behind schedule! When pressure is high, be more aggressive with `ON_DEMAND` to guarantee progress. When pressure is low, you can afford to explore more for cheap `SPOT` instances.
+    3.  **WARNING ON `task_progress`:** You might be tempted to use a variable like `self.task_progress`. This attribute does NOT exist. You MUST calculate progress manually using `sum(self.task_done_time) / self.task_duration`.
+
+    **OUTPUT FORMAT:**
+    Return ONLY the new Python code to replace the content between the EVOLVE-BLOCK markers. Do not include the markers or any explanations.
+
+# Database and Evolution Configuration
+database:
+  population_size: 80
+  archive_size: 30
+  num_islands: 4
+  elite_selection_ratio: 0.1  # Lowered from 0.15
+  exploitation_ratio: 0.5   # Lowered from 0.65, leaving more room for exploration
+
+# Evaluator and Evolution Configuration
+evaluator:
+  parallel_evaluations: 4
+  timeout: 300 # 5 minutes per evaluation
+  enable_artifacts: true
+  use_llm_feedback: false
+  # Cascade evaluation divides the evaluation into multiple stages.
+  # A program only proceeds to the next stage if it passes the current one.
+  # This is highly effective for quickly filtering out non-viable programs.
+  cascade_evaluation:
+    # A list of functions in the evaluator file to be called in sequence.
+    # Each function represents a stage.
+    stages:
+      - "evaluate_stage1"  # Quick syntax and basic runtime check
+      - "evaluate_stage2"  # Full, comprehensive evaluation
+    # The metric from the stage's return dictionary that must be > 0 to pass.
+    # For stage 1, we will return `{'runs_successfully': 1.0}` on success.
+    pass_metric: "runs_successfully"
+
+
+# Evolution settings
+max_iterations: 300 # Increased from 100
+checkpoint_interval: 10
+max_code_length: 60000

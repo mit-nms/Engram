@@ -1,0 +1,1 @@
+To design the algorithm, first consider the requirements and system model carefully to develop an overall strategy. Then, implement your solution.

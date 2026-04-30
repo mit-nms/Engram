@@ -1,0 +1,98 @@
+Design an efficient request scheduler for a distributed LLM serving cluster. Use the Vidur simulator (the current working directory) to evaluate your ideas.
+
+System Model:
+Here is how the load balance works:
+
+1. The load balancer manages a number of LLM serving nodes called `replica_scheduler`s.
+  - The load balancer routes requests to any of these replicas.
+  - The load balancer must eventually route all requests.
+
+2. The load balancer makes routing decisions per each request. The load balancer knows these three key properties per request:
+  - `_arrived_at`: When the request was received at the load balancer.
+  - `_num_prefill_tokens`: number of tokens to prefill.
+  - `num_processed_tokens`: number of tokens that have been processed so far.
+  - A request has some number of decode tokens but this is not known until the request is completed.
+
+3. Each replica maintains two queues: `pending_queue` and `active_queue`. 
+  - `pending_queue` contains requests where the prefill has not started. `num_processed_tokens` is 0 and there is no memory allocated in the GPU for these requests.
+  - `active_queue` contains requests that are currently being processed. `num_processed_tokens > 0` and some memory is allocated in the GPU for these requests. If `num_processed_tokens < num_prefill_tokens`, the request is still in the prefill phase. Otherwise, the request is in the decode phase.
+  - A request cannot be in both queues at the same time.
+
+4. Each replica has to allocate memories for requests currently being processed, in the `active_queue`, in blocks (16 tokens at a time).
+  - In case there is no memory left at a replica for continuing decoding of active requests, replicas will evict newer requests to free memory for earlier requests.
+  - This removes the request from the 'active_queue', frees its allocated memory, resets its state, and adds it to the 'pending_queue'.
+  - If the evicted request was in the decode phase, the 'num_prefill_tokens' is updated to 'num_processed_tokens'.
+
+5. The load balancer can observe the current state of all replicas, meaning all requests in `pending_queue` and `active_queue` of each replica.
+
+Objective:
+Design a solution that Minimize the average request completion time across all requests.
+
+
+Implementation:
+Please implement the following according to the specifications:
+
+Your task is to implement a custom load balancer by inheriting from BaseGlobalScheduler.
+To achieve this, you will implement the `schedule` function of this class.
+This function is called everytime 1) a new request has arrived, or 2) a replica has finished a request.
+To return the routing decisions, this function should return a list of tuples. Each tuple consists of 1) the id number of the replica to route to and 2) the request to be routed `(replica_id, request)`.
+Note that routed requests should be popped from `self._request_queue`.
+Do not change the properties of requests or replicas.
+
+Here is how you can access some helpful metrics to guide the decision-making process.
+
+1. The CustomGlobalScheduler you will implement can see the following elements from a parent class (BaseGlobalScheduler):
+  ```python
+  _request_queue: List[Request]                               # queue of pending requests waiting to be routed
+  _num_replicas: int                                          # number of available replicas with IDs `0` to `self._num_replicas-1`
+  _replica_schedulers: Dict[int, ReplicaScheduler]            # maps replica IDs to replica objects
+  ```
+
+2. Each replica in `_replica_schedulers` is a `ReplicaScheduler` object, and has the following READ-ONLY properties:
+  ```python
+  replica_id: int                                             # unique replica id
+  memory_usage_percent: float                                 # percentage of memory allocated to requests currently being processed
+  num_blocks: int                                             # number of total blocks available for allocation
+  num_allocated_blocks: int                                   # number of blocks allocated to currently running requests
+  block_size: int                                             # Number of tokens per each allocated block
+  pending_queue: List[Request]                                # list of requests that have not yet begun processing
+  active_queue: List[Request]                                 # list of requests that are currently being processed
+  ```
+
+3. Each request has the following READ-ONLY properties:
+  ```python
+  arrived_at: float                                           # arrival time
+  num_prefill_tokens: int                                     # number of prefill tokens
+  num_processed_tokens: int                                   # number of tokens processed so far
+  num_restarts: int                                           # number of times request was evicted
+  ```
+
+Now, implement the load balancer, i.e., CustomGlobalScheduler. Only output the full code for the CustomGlobalScheduler class.
+
+```python
+class CustomGlobalScheduler(BaseGlobalScheduler):
+    """Custom global scheduler for LLM inference
+
+    Required methods:
+        - schedule
+    """
+    # Your implementation here
+
+```
+
+**IMPORTANT NOTES:**
+- As a reference, take a look at the initial implementation in the file `/llq_scheduler.py`.
+- Put your implementation in the file `/custom_scheduler.py`.
+- You do not need to import the classes, the `run_simulation` tool will import the classes for you. ONLY OUTPUT THE CODE FOR THE `CustomGlobalScheduler` CLASS.
+- After running `run_simulation`, the metrics files will be written as `/request_metrics{random_number}.csv`.
+- The simulation result file is big, so use `read_file` with a limit to read them. 
+- You can use the `shell` tool to analyze the results from the CSV file using bash commands.
+- To design the algorithm, first consider the requirements and system model carefully to develop an overall strategy. Then, implement your solution.
+
+The CSV file provides the following information per request: ['Request Id', 'request_e2e_time', 'request_e2e_time_normalized', 'request_execution_time', 'request_execution_time_normalized', 'request_model_execution_time', 'request_model_execution_time_normalized', 'request_preemption_time', 'request_scheduling_delay', 'request_execution_plus_preemption_time', 'request_execution_plus_preemption_time_normalized', 'prefill_e2e_time', 'prefill_time_execution_plus_preemption', 'prefill_time_execution_plus_preemption_normalized', 'decode_time_execution_plus_preemption_normalized', 'request_inter_arrival_delay', 'request_num_tokens', 'request_num_prefill_tokens', 'request_num_decode_tokens', 'request_pd_ratio', 'request_num_restarts'] 
+
+The simulation score returned is approximately 20 / avg_request_e2e_time (higher score = better performance).
+
+The baseline LLQ scheduler achieves a score of approximately 0.366. Your target is to achieve a score of at least 0.8.
+
+DO NOT return back to the user until you've achieved a score >= 0.8.

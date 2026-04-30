@@ -1,0 +1,107 @@
+You are an expert in data optimization and LLM prompt caching. Your task is to evolve the existing Evolved class to maximize prefix hit count (PHC) for efficient LLM prompt caching.
+
+Problem Context:
+- You are given a pandas DataFrame `df` with n rows and m columns of text data
+- Your task is to produce an output DataFrame where:
+  1. The rows may be reordered (deciding which original row appears first, second, etc.)
+  2. Each row's values may be permuted independently (each row can have its own column ordering)
+- The output DataFrame has the same shape (n rows, m columns), but each row is simply a sequence of m values arranged in whatever order you choose for that row
+
+Example of per-row permutation benefit:
+
+Input DataFrame:
+| name    | date |
+|---------|------|
+| Rug     | 2014 |
+| Rug     | 2015 |
+| Carpet  | 2016 |
+| Blanket | 2016 |
+
+A naive fixed-column approach might sort by one column, getting hits on either "Rug" OR "2016":
+| name    | date |     Hits on "Rug" and "201":
+| Rug     | 2014 |     Rug2014 → Rug2015 ✓ (6 chars) 
+| Rug     | 2015 |
+| Blanket | 2016 |     Then mismatch at "Blanket"
+| Carpet  | 2016 |
+
+By permuting values within each row, you can maximize prefix matches on both key tokens:
+
+| col1   | col2    |
+| Rug    | 2014    |   Rug2014 → Rug2015 ✓ (shared 'Rug' and "201", 6 chars)
+| Rug    | 2015    |
+| 2016   | Carpet  |   2015 → 2016 ✓ (move '2016' first to align)
+| 2016   | Blanket |   2016Carpet → 2016Blanket ✓ (4 chars match: '2016')
+
+The output DataFrame still has 4 rows × 2 columns, but each row arranges its values independently to maximize prefix matches with previous rows.
+
+- Prefix reuse occurs when consecutive rows have matching values in the same column positions
+- This reduces LLM computation costs by reusing cached prefixes
+
+Objective:
+- Dual objective: (1) maximize prefix reuse between consecutive rows and (2) minimize end-to-end runtime of the algorithm
+- Your goal is to arrange rows and their values so that each row shares as long a prefix as possible with the immediately preceding row
+- The **hit score** of a row is the number of leading characters that match the prefix of the immediately preceding row
+- The algorithm will be evaluated on a combined metric that balances accuracy (prefix reuse) and speed (runtime)
+
+Formally:
+Let D be the input DataFrame with rows R = {r_1, ..., r_n} where each row r_i has values {v_{i,1}, ..., v_{i,m}}.
+
+Your algorithm produces:
+- A row ordering σ (a permutation of {1,...,n}) determining which row appears at each position
+- For each row i, a value ordering π_i (a permutation of {1,...,m}) determining how that row's values are arranged
+
+The output DataFrame D' has:
+- Row j contains the values of r_{σ(j)} arranged according to π_{σ(j)}
+- Position k of row j is: v_{σ(j), π_{σ(j)}(k)}
+
+Evaluation:
+- Each row j is converted to string by directly concatenating its values (no separator): s_j = D'[j][1] + D'[j][2] + ... + D'[j][m]
+- Hit count for row j = length of longest prefix of s_j that matches the immediately preceding row s_{j-1}
+- Total hit rate = (sum of hit counts) / (sum of string lengths)
+- Combined score = 0.95 × average_hit_rate + 0.05 × (12 - min(12, avg_runtime)) / 12
+  where average_hit_rate is the mean of per-dataset hit rates (0 to 1).
+  The runtime term contributes only 5% of the score, so as long as your algorithm runs in under 12 seconds per dataset, runtime has negligible impact. Focus your effort on maximizing hit rate.
+
+Implementation:
+Your task is to implement an `Evolved` class that extends `Algorithm`.
+You must keep the existing Evolved class structure and the reorder method signature:
+
+```python
+from solver import Algorithm
+class Evolved(Algorithm):
+    def reorder(self, df, **kwargs):
+        # Your improved implementation here
+        return result_df
+```
+
+You can modify the internal implementation of methods but must preserve the class structure and method signatures.
+The reorder method must return the reordered DataFrame.
+
+Algorithm Design Guidelines:
+- Consider value statistics (frequency, string lengths) when deciding how to order values within each row
+- Consider how to group rows that share common values to maximize consecutive prefix matches
+- Handle missing values and mixed data types appropriately
+- Both simple and sophisticated approaches can achieve high scores; the key is maximizing prefix overlap between consecutive rows
+
+Constraints:
+- Do not add/remove rows or columns.
+- Each row's values can be independently permuted (you may use different column orderings for different rows if beneficial)
+- Return a DataFrame with the same number of rows and columns as the input you receive
+- Use exact string matching for prefix calculations
+- Keep memory usage reasonable for large datasets
+- Preserve all existing method signatures and class structure
+
+**IMPORTANT NOTES:**
+- There is a reference implementation in the file `/initial_program.py`.
+- `run_simulation` will evaluate your algorithm on 5 datasets: movies, beer, BIRD, PDMX, and products. Each dataset has different characteristics (number of rows, columns, value distributions).
+- Imports are injected automatically. ONLY OUTPUT THE `Evolved` CLASS CODE.
+- **CRITICAL**: Use `run_simulation(file_path="/new_algorithm.py")` directly. Do NOT use shell.
+- To design the algorithm, first consider the requirements and objective carefully to develop an overall strategy. Then, implement your solution.
+- REMEMBER, the hit rate determines 95% of the score and runtime is 5%.
+- **SAMPLE DATA AVAILABLE**: Pre-merged sample datasets (300 rows each) in `/sample_data/`:
+  - `movies_sample.csv` (6 cols), `beer_sample.csv` (8 cols), `BIRD_sample.csv` (3 cols)
+  - `PDMX_sample.csv` (51 cols), `products_sample.csv` (7 cols)
+  - Functionally dependent columns are pre-merged because grouping them yields higher hit scores (combined prefix length^2 > sum of individual lengths^2).
+  - These samples match what your `reorder()` receives. Although, reorder recieved the full datasets. 
+
+DO NOT return until you achieve a final aggregated score of at least *0.8*.
