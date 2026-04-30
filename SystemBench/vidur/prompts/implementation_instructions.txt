@@ -1,0 +1,65 @@
+Your task is to implement a custom load balancer by inheriting from BaseGlobalScheduler.
+To achieve this, you will implement the `schedule` function of this class.
+This function is called everytime 1) a new request has arrived, or 2) a replica has finished a request.
+To return the routing decisions, this function should return a list of tuples. Each tuple consists of 1) the id number of the replica to route to and 2) the request to be routed `(replica_id, request)`.
+Note that routed requests should be popped from `self._request_queue`. If you decide to not route a request at this moment, you can simply avoid returning a mapping for that request and keep it in `self._request_queue`.
+The signature of this class and the function can be observed from an example implementation of a round-robin scheduler.
+Do not change the properties of requests or replicas.
+
+```python
+class CustomGlobalScheduler(BaseGlobalScheduler):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # Optional initialization code
+
+        # round-robin counter
+        self._request_counter = 0
+
+    def schedule(self) -> List[Tuple[int, Request]]:
+        # You can sort unrouted requests in `self._request_queue` by `request._arrived_at`.
+        self.sort_requests()
+
+        # You must return a list of tuples to describe the mapping of requests.
+        request_mapping = []
+        while self._request_queue:
+            request = self._request_queue.pop(0)
+
+            # increment counter and correct overflows
+            replica_id = self._request_counter % self._num_replicas
+            self._request_counter += 1
+
+            # assign request to replica at counter
+            request_mapping.append((replica_id, request))
+
+        return request_mapping
+```
+
+Here is how you can access some helpful metrics to guide the decision-making process.
+
+1. The CustomGlobalScheduler you will implement can see the following elements from a parent class (BaseGlobalScheduler):
+   ```python
+   _request_queue: List[Request]                               # queue of pending requests waiting to be routed
+   _num_replicas: int                                          # number of available replicas with IDs `0` to `self._num_replicas-1`
+   _replica_schedulers: Dict[int, ReplicaScheduler]            # maps replica IDs to replica objects
+   ```
+
+2. Each replica in `_replica_schedulers` is a `ReplicaScheduler` object, and has the following READ-ONLY properties:
+   ```python
+   replica_id: int                                             # unique replica id
+   memory_usage_percent: float                                 # percentage of memory allocated to requests currently being processed
+   num_blocks: int                                             # number of total blocks available for allocation
+   num_allocated_blocks: int                                   # number of blocks allocated to currently running requests
+   block_size: int                                             # Number of tokens per each allocated block
+   pending_queue: List[Request]                                # list of requests that have not yet begun processing
+   active_queue: List[Request]                                 # list of requests that are currently being processed
+   ```
+
+3. Each request has the following READ-ONLY properties:
+   ```python
+   arrived_at: float                                           # arrival time
+   num_prefill_tokens: int                                     # number of prefill tokens
+   num_processed_tokens: int                                   # number of tokens processed so far
+   num_restarts: int                                           # number of times request was evicted
+   ```
+
+Now, implement the load balancer, i.e., CustomGlobalScheduler. Only output the full code for the CustomGlobalScheduler class.

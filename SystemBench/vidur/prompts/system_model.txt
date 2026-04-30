@@ -1,0 +1,23 @@
+Here is how the load balance works:
+
+1. The load balancer manages a number (e.g., 16) of LLM serving node called `replica_scheduler`s.
+   - The load balancer routes requests to any of these replicas, but may optionally avoid routing a request if needed.
+   - The load balancer must eventually route all requests.
+
+2. The load balancer makes routing decisions per each request. The load balancer knows these three key properties per request:
+   - `_arrived_at`: When the request was received at the load balancer.
+   - `_num_prefill_tokens`: number of tokens to prefill.
+   - `num_processed_tokens`: number of tokens that have been processed so far.
+   - A request has some number of decode tokens but this is not known until the request is completed.
+
+3. Each replica maintains two queues: `pending_queue` and `active_queue`.
+   - `pending_queue` contains requests where the prefill has not started. `num_processed_tokens` is 0 and there is no memory allocated in the GPU for these requests.
+   - `active_queue` contains requests that are currently being processed. `num_processed_tokens > 0` and some memory is allocated in the GPU for these requests. If `num_processed_tokens < num_prefill_tokens`, the request is still in the prefill phase. Otherwise, the request is in the decode phase.
+   - A request cannot be in both queues at the same time.
+
+4. Each replica has to allocate memories for requests currently being processed, in the `active_queue`, in blocks (16 tokens at a time).
+   - In case there is no memery left at a replica for continuing decoding of active requests, replicas will evict newer requests to free memory for earlier requests.
+   - This removes the request from the 'active_queue', frees its allocated memory, resets its state, and adds it to the 'pending_queue'.
+   - If the evicted request was in the decode phase, the 'num_prefill_tokens' is updated to 'num_processed_tokens'. 
+
+5. The load balancer can observe the current state of all replicas, meaning all requests in `pending_queue` and `active_queue` of each replica.

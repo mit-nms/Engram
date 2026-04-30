@@ -1,0 +1,109 @@
+# OpenEvolve config for Frontier-CS algorithmic/109
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Time Limit: 1 second
+    Memory Limit: 128 MB
+    
+    Description
+    A knight moves on an N×N chessboard and must try to visit every square exactly once (no revisiting). Given the board size and the starting square, output the longest possible path.
+    Note that this problem doesn't require a full complete path. It only asks you to find the longest path possible, and output that path.
+    
+    Constraints
+    - 6 ≤ N ≤ 666
+    
+    Input
+    - The first line contains the integer N.
+    - The second line contains two integers r c — the starting position (row and column), 1-indexed.
+    
+    Output
+    - The first line of output should be an integer l: the length of the path you found(remember to include r0, c0)
+    - Then output l lines. Each line must contain two integers r c (1-indexed), the successive positions visited by the knight, starting with the given starting position.
+    When outputting the answer, make sure to not have an extra empty line at the end of the output after printing out the final move.
+    - The first pair of coordinates in your path must be the starting points r0 and c0.
+    
+    Sample Input
+    6
+    1 1
+    
+    Sample Output
+    36
+    1 1
+    3 2
+    5 1
+    6 3
+    5 5
+    3 6
+    2 4
+    1 6
+    3 5
+    5 6
+    4 4
+    5 2
+    3 1
+    1 2
+    3 3
+    2 1
+    1 3
+    2 5
+    4 6
+    6 5
+    5 3
+    6 1
+    4 2
+    5 4
+    6 6
+    4 5
+    6 4
+    4 3
+    6 2
+    4 1
+    2 2
+    1 4
+    2 6
+    3 4
+    1 5
+    2 3
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

@@ -1,0 +1,87 @@
+# OpenEvolve config for Frontier-CS algorithmic/58
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Inverse Counting Path
+    
+    Walk Alone is an expert in dynamic programming, but he gets bored with traditional dynamic programming problem like counting paths on a 2-dimension grid, so he wants to do it in reverse. The problem he raised is as follows:
+    
+    On a 2-dimension grid of size n*n, originally you are on grid (1,1). The grid consists of 0 and 1, and you can only walk on the grid with number 1 in it. You can only go down or right, i.e. you can only increase your x or y by one. Also you cannot walk outside the grid.
+    
+    Given the number x of ways to walk from (1,1) to (n,n), you need to construct a grid of n*n so that the ways to walk is exactly x. However, since Walk Alone's brain is too small to memorize such a big grid, you need to guarantee that the size of the grid n is equal to or smaller than 300. Specifically, your score will be (300 - n) / 300.
+    
+    Input
+    
+    The only line of the input contains one integer x (1<=x<=10^18), denoting the ways to walk.
+    
+    Output
+    
+    The first line of the output contains the size of the grid n. Remind that you need to guarantee 1<=n<=300.
+    
+    The following n lines each contains n integers a_{i,j}∈{0,1} denoting the grid, where 0 denotes you cannot walk on the grid while 1 is on the contrast.
+    
+    Example Input 1:
+    
+    3
+    
+    Example Output 1:
+    
+    3
+    1 1 0
+    1 1 0
+    1 1 1
+    
+    Example Input 2:
+    
+    10
+    
+    Example Output 2:
+    
+    4
+    1 1 1 0
+    1 1 1 1
+    1 0 1 1
+    1 1 1 1
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

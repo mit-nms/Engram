@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Experiment Results Viewer</title>
+  <link rel="stylesheet" href="/static/css/style.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/prism.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/components/prism-python.min.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/prismjs@1.29.0/themes/prism-tomorrow.min.css" rel="stylesheet">
+</head>
+<body>
+  <div class="app">
+    <header class="header">
+      <h1>Experiment Results Viewer</h1>
+      <p class="subtitle">Tree, OpenEvolve, Handoff — no aggregated_results.json required</p>
+    </header>
+
+    <section class="config-section card">
+      <h2>Results root</h2>
+      <p class="hint">Enter one or more directories to scan (one per line). Click Set &amp; Refresh to save and load runs.</p>
+      <textarea id="resultRoots" rows="3" placeholder="/path/to/results/prompt_ablation_results&#10;/path/to/OpenEvolve_Results"></textarea>
+      <div class="actions">
+        <button type="button" id="btnSetRoots" class="btn btn-primary">Set &amp; Refresh</button>
+        <span id="configStatus" class="status"></span>
+      </div>
+    </section>
+
+    <section class="run-select-section card">
+      <h2>Run or aggregate</h2>
+      <select id="runSelect" disabled>
+        <option value="">— Select a run (set results root first) —</option>
+      </select>
+      <span id="runStatus" class="status"></span>
+    </section>
+
+    <section id="summarySection" class="summary-section hidden">
+      <h2>Summary</h2>
+      <div class="metrics">
+        <div class="metric">
+          <span class="metric-label">Best score</span>
+          <span id="metricBestScore" class="metric-value">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Iterations</span>
+          <span id="metricIterations" class="metric-value">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Successful</span>
+          <span id="metricSuccess" class="metric-value">—</span>
+        </div>
+        <div class="metric">
+          <span class="metric-label">Type</span>
+          <span id="metricType" class="metric-value">—</span>
+        </div>
+      </div>
+    </section>
+
+    <section id="chartSection" class="chart-section card hidden">
+      <h2>Score evolution</h2>
+      <div class="chart-wrap">
+        <canvas id="scoreChart"></canvas>
+      </div>
+    </section>
+
+    <section id="baselinesSection" class="card hidden">
+      <h2>Baselines</h2>
+      <div class="table-wrap">
+        <table id="baselinesTable">
+          <thead><tr><th>Baseline</th><th>Score</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="codeSection" class="card hidden">
+      <h2>Best solution code</h2>
+      <pre class="code-block"><code id="bestCode" class="language-python"></code></pre>
+    </section>
+
+    <section id="logSection" class="card hidden">
+      <h2>Log</h2>
+      <pre id="logContent" class="log-content"></pre>
+    </section>
+
+    <section id="iterationsSection" class="card hidden">
+      <h2 id="iterationsHeader">Iterations</h2>
+      <div class="table-wrap">
+        <table id="iterationsTable">
+          <thead><tr><th>#</th><th>Score</th><th>Success</th><th>Round</th><th>Node</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+  </div>
+
+  <script src="/static/js/app.js"></script>
+</body>
+</html>

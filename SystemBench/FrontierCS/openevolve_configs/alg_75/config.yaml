@@ -1,0 +1,97 @@
+# OpenEvolve config for Frontier-CS algorithmic/75
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Black and White
+    
+    Time limit: 2 seconds
+    Memory limit: 256 megabytes
+    
+    ------------------------------------------------------------
+    The jury has a great artistic idea — to create a rectangular
+    panel out of a huge pile of black and white squares of the
+    same size. The panel should have exactly b 4-connected areas
+    made of black tiles, and w 4-connected areas made of white tiles.
+    
+    A 4-connected area of some color is a maximal set of the
+    panel tiles such that:
+    • any two tiles of the area share the same color;
+    • for any two tiles of the area there is a tile sequence
+      connecting them, such that any two consecutive tiles of
+      the sequence share a common side.
+    
+    You will also be given two integers x, y. Try to minimize x * (the number of black tiles in your grid) + y * (the number of white tiles in your grid).
+    
+    ------------------------------------------------------------
+    Input
+    ------------------------------------------------------------
+    The only line of the input file contains four integers b, w —
+    number of black and white areas (1 ≤ b, w ≤ 1000) and x, y - grading coefficients (1 ≤ x, y ≤ 1000).
+    
+    ------------------------------------------------------------
+    Output
+    ------------------------------------------------------------
+    The first line of the output file should contain the picture sizes
+    r and c — the number of rows and columns (1 ≤ r, c ≤ 100 000).
+    This line should be followed by r lines of c symbols each.
+    Each symbol should be either '@' (for black tile) or '.' (for
+    white one). There should be no more than 100 000 tiles in
+    the panel.
+    
+    ------------------------------------------------------------
+    Example
+    ------------------------------------------------------------
+    Input:
+    2 3 5 6
+    
+    Output:
+    6 7
+    @@@@@@@
+    @.@@@@@
+    @@...@@
+    @@@@@@@
+    .......
+    @@@@@@@
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

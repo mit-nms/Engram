@@ -1,0 +1,98 @@
+# OpenEvolve config for Frontier-CS algorithmic/213
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Sequence Shift (moqueve)
+    
+    Problem Description:
+    You need to sort a permutation of $1\sim n$ on a strange computer.
+    
+    You can choose a number $x$, and then each time you can cyclically shift a segment of length $x$ to the left or right (the leftmost/rightmost element moves to the rightmost/leftmost position) (shift amount is $1$).
+    
+    Please restore the sequence to $1\sim n$ within $230\times n$ operations.
+    
+    Input Format:
+    The first line contains a single integer $n$.
+    
+    The second line contains $n$ integers, representing the sequence $a$.
+    
+    Output Format:
+    The first line contains two integers $x$ and $m$, where $m$ represents the number of operations.
+    
+    The next $m$ lines each contain three integers: the first two represent the shift interval, and the last one represents the direction, where $0$ means left and $1$ means right.
+    
+    Example:
+    Input:
+    5
+    4 2 3 5 1
+    
+    Output:
+    3
+    3
+    3 5 1
+    1 3 1
+    2 4 0
+    
+    Explanation:
+    - Right shift (3,5): sequence becomes 4,2,1,3,5
+    - Right shift (1,3): sequence becomes 1,4,2,3,5
+    - Left shift (2,4): sequence becomes 1,2,3,4,5
+    
+    Constraints:
+    - $n \leq 1000$
+    - The sequence $a$ is a permutation of $1\sim n$
+    
+    Scoring:
+    Your score is calculated based on the number of operations $m$:
+    - If $m \leq 23n$, you receive full score (1.0).
+    - If $m > 230n$, you receive 0 score.
+    - Otherwise, Score = max(0.0, 1.0 - (m - 23n) / (230n - 23n)), linearly decreasing from 1.0 to 0.0.
+    
+    Time limit:
+    5 seconds
+    
+    Memory limit:
+    512 MB
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

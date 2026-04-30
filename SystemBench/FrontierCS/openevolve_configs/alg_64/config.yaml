@@ -1,0 +1,71 @@
+# OpenEvolve config for Frontier-CS algorithmic/64
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Given (1 <= n <= 1e2) and (B = 1e15), n integers a_1 … a_n (0 <= a_i <= B) drawn from either (normal, uniform, pareto, exponential) distributions, find a subset of a_1..a_n that sums as close as possible to T=x_i*a_i, x_i drawn from Bernoulli (1/2).
+    
+    Score = 100 * (15 - log(error + 1)) / 15
+    
+    25% of the test cases will be from U(0, B)
+    25% of the test cases will be from N(B/2, B/6)
+    25% of the test cases will be from Exp(B/2)
+    25% of the test cases will be from TruncatedPareto(m=B/3, alpha=2, max=B)
+    
+    Input: 
+    n T
+    A_1 a_2 a_3 a_4 .. a_n
+    
+    
+    
+    Output: 
+    Print a binary string of length n, denoting the subset selection.
+    
+    Sample input: 
+    3 4
+    1 2 3
+    
+    Sample output:
+    101
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 100
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

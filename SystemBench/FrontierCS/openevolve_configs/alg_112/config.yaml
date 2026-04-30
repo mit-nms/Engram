@@ -1,0 +1,88 @@
+# OpenEvolve config for Frontier-CS algorithmic/112
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    SphereSpread
+    
+    You are given an integer n. You need to place n points in 3D space such that all points lie within or on 
+    a unit sphere centered at the origin (i.e., the distance from each point to the origin is at most 1).
+    
+    Your goal is to maximize the minimum pairwise distance between any two points. In other words, you want 
+    to spread the points out as much as possible, maximizing the distance between the closest pair.
+    
+    Input
+    The first line contains a single integer n — the number of points to place.
+    
+    Output
+    On the first line, print a single real number min_dist — the minimum pairwise distance achieved by your 
+    point placement.
+    The next n lines should each contain three real numbers xi, yi, zi — the coordinates of the i-th point.
+    
+    All coordinates must satisfy xi² + yi² + zi² ≤ 1 (the point lies within or on the unit sphere).
+    
+    Constraints
+    2 <= n <= 1000
+    
+    Your answer will be accepted if:
+    - All points are within or on the unit sphere (with absolute or relative error at most 10^-9)
+    - The actual minimum pairwise distance matches your claimed min_dist (with absolute or relative error at most 10^-6)
+    
+    Scoring
+    You will be graded based on the minimum pairwise distances you achieve.
+    To be more specific, your answer will be compared to a reference solution ref_answer.
+    Your final score will be calculated as the average of 100 * min(your_answer / ref_answer, 1) across all test cases.
+    
+    Time limit: 2 seconds
+    
+    Memory limit: 512 MB
+    
+    Sample Input:
+    2
+    
+    Sample Output:
+    2
+    0 0 1
+    0 0 -1
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

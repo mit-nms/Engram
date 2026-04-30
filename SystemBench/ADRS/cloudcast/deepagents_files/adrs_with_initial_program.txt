@@ -1,0 +1,78 @@
+You are an expert in cloud infrastructure optimization. Your task is to evolve the 
+search_algorithm(src, dsts, G, num_partitions) function to minimize overall 
+data transfer cost while meeting strict time constraints across multiple clouds. 
+Focus on efficiently broadcasting input data to multiple destination nodes by leveraging 
+parallel paths and overlapping transfers across networks. Use the BroadCastTopology 
+class and make_nx_graph function to identify low-cost, high-throughput routes. 
+Prioritize strategies that reduce redundant transfers, balance load across networks, 
+and exploit multi-network topologies to minimize both latency and cost.
+
+This is the general structure of the code:
+
+# EVOLVE-BLOCK-START
+import networkx as nx
+import json
+import os
+from typing import Dict, List
+
+
+def search_algorithm(src, dsts, G, num_partitions):
+    h = G.copy()
+    h.remove_edges_from(list(h.in_edges(src)) + list(nx.selfloop_edges(h)))
+    bc_topology = BroadCastTopology(src, dsts, num_partitions)
+
+    for dst in dsts:
+        path = nx.dijkstra_path(h, src, dst, weight="cost")
+        for i in range(0, len(path) - 1):
+            s, t = path[i], path[i + 1]
+            for j in range(bc_topology.num_partitions):
+                bc_topology.append_dst_partition_path(dst, j, [s, t, G[s][t]])
+
+    return bc_topology
+
+# EVOLVE-BLOCK-END
+
+
+## DO NOT TOUCH THE CODE BELOW!!!
+
+class SingleDstPath(Dict):
+    partition: int
+    edges: List[List]  # [[src, dst, edge data]]
+
+
+class BroadCastTopology:
+    def __init__(self, src: str, dsts: List[str], num_partitions: int = 4, paths: Dict[str, SingleDstPath] = None):
+        self.src = src  # single str
+        self.dsts = dsts  # list of strs
+        self.num_partitions = num_partitions
+
+        # dict(dst) --> dict(partition) --> list(nx.edges)
+        # example: {dst1: {partition1: [src->node1, node1->dst1], partition 2: [src->dst1]}}
+        if paths is not None:
+            self.paths = paths
+            self.set_graph()
+        else:
+            self.paths = {dst: {str(i): None for i in range(num_partitions)} for dst in dsts}
+
+    def get_paths(self):
+        print(f"now the set path is: {self.paths}")
+        return self.paths
+
+    def set_num_partitions(self, num_partitions: int):
+        self.num_partitions = num_partitions
+
+    def set_dst_partition_paths(self, dst: str, partition: int, paths: List[List]):
+        """
+        Set paths for partition = partition to reach dst
+        """
+        partition = str(partition)
+        self.paths[dst][partition] = paths
+
+    def append_dst_partition_path(self, dst: str, partition: int, path: List):
+        """
+        Append path for partition = partition to reach dst
+        """
+        partition = str(partition)
+        if self.paths[dst][partition] is None:
+            self.paths[dst][partition] = []
+        self.paths[dst][partition].append(path)

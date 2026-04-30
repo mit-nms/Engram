@@ -1,0 +1,9 @@
+Please fix the implementation based on the error message. Make sure your solution:
+
+1. Addresses the specific error
+2. Properly manages edge cases
+3. Follows the required function signature and return type
+4. Does not change read-only properties
+5. Maintains state correctly (pops from queues when needed, avoids removing items from a for loop list)
+
+Only return the fixed implementation code, nothing else.

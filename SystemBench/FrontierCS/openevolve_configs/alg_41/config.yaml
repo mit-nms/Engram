@@ -1,0 +1,97 @@
+# OpenEvolve config for Frontier-CS algorithmic/41
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    # Problem
+    
+    Anton owns \(n\) umbrellas, each labeled with a distinct integer from \(1\) to \(n\). He wants to arrange some of them in a line to form a brilliant sequence of umbrellas (BSU).
+    
+    A sequence of \(k\) umbrellas with numbers \(a_1, a_2, \ldots, a_k\) is a BSU if:
+    
+    - \(a_i > a_{i-1}\) for all \(2 \le i \le k\);
+    - \(\gcd(a_i, a_{i-1}) > \gcd(a_{i-1}, a_{i-2})\) for all \(3 \le i \le k\).
+    
+    Here, \(\gcd(x, y)\) denotes the greatest common divisor of integers \(x\) and \(y\).
+    
+    ## Input
+    A single line containing an integer \(n\) — the number of umbrellas \((1 \le n \le 10^{12})\).
+    
+    ## Output
+    Print two lines:
+    
+    - The first line should contain an integer \(k\), the length of your BSU \((1 \le k \le 10^6)\).
+    - The second line should contain \(k\) integers \(a_1, a_2, \ldots, a_k\) \((1 \le a_i \le n)\), forming a valid BSU.
+    
+    ## Goal
+    Maximize the objective:
+    \[
+    V \;=\; \text{length}(\text{BSU}) \times \sum_{i=1}^{k} a_i \;=\; k \times \Big(\sum_{i=1}^{k} a_i\Big).
+    \]
+    
+    ## Scoring
+    We compare your objective value \(V_{\text{you}}\) with a fixed baseline heuristic’s value \(V_{\text{base}}\) on the same test. There is **no** best/optimal reference in scoring.
+    
+    Your score for a test is:
+    \[
+    \text{score} \;=\; 100 \times \min\!\left(\frac{V_{\text{you}}}{1.05 \times V_{\text{base}}},\, 1\right).
+    \]
+    
+    Thus, reaching \(1.05 \times V_{\text{base}}\) yields a score of 100. Your final score is the average over all tests. Invalid outputs (violating constraints) receive 0 for that test.
+    
+    ## Time limit
+    1 second
+    
+    ## Memory limit
+    512 MB
+    
+    ## Sample
+    **Input**
+    22
+    **Output**
+    5
+    1 2 4 8 16
+    
+    (The sample only illustrates format and validity; it is not necessarily optimal for the new objective.)
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

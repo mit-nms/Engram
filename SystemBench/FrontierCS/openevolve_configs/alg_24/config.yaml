@@ -1,0 +1,83 @@
+# OpenEvolve config for Frontier-CS algorithmic/24
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Time limit: 1 seconds
+    Memory limit: 512 megabytes
+    Bobo has an n×n symmetric matrix C consisting of zeros and ones. For a permutation p_1, ..., p_n of 1, ..., n, let c_i=(C_{p_i, p_{i+1}} for 1 ≤ i < n, C_{p_n, p_1} for i = n).
+    The permutation p is almost monochromatic if and only if the number of indices i (1 ≤ i < n) where c_i ̸= c_{i+1} is at most one.
+    Find an almost monochromatic permutation p_1, ... p_n for the given matrix C.
+    
+    Input
+    The input consists of several test cases terminated by end-of-file. For each test case,
+    The first line contains an integer n.
+    For the following n lines, the i-th line contains n integers C_{i,1}, ..., C_{i,n}.
+     •3≤n≤2000
+     •C_{i,j} ∈ {0,1} for each1 ≤ i,j ≤ n
+     •C_{i,j} = C_{j,i} for each1 ≤ i,j ≤ n
+     •C_{i,i} = 0 for each 1 ≤ i ≤ n
+     •In each input, the sum of n does not exceed 2000.
+    
+    Output
+    For each test case, if there exists an almost monochromatic permutation, out put n integers p_1, ..., p_n which denote the permutation. Otherwise, output -1.
+    If there are multiple almost monochromatic permutations, you need to minimize the lexicographical order. Basically, set S = n * p_1 + (n - 1) * p_2 + ... + 1 * p_n, your score is inversely linear related to S.
+    
+    SampleInput
+    3
+    001
+    000
+    100
+    4
+    0000
+    0000
+    0000
+    0000
+    SampleOutput
+    3 1 2
+    2 4 3 1
+    
+    Note
+    For the first test case, c1 = C_{3,1} = 1, c2 = C_{1,2} = 0, c3 = C_{2,3} = 0. Only when i=1, c_i ̸= c_{i+1}.Therefore, the permutation 3,1,2 is an almost monochromatic permutation
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 30
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

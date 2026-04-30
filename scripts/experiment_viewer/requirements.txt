@@ -1,0 +1,3 @@
+# Install for Experiment Results Viewer (Flask UI)
+# pip install -r scripts/experiment_viewer/requirements.txt
+flask>=3.0.0

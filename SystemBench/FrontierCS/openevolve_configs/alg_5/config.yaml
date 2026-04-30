@@ -1,0 +1,121 @@
+# OpenEvolve config for Frontier-CS algorithmic/5
+
+max_iterations: 100
+checkpoint_interval: 10
+log_level: "DEBUG"
+
+# LLM configuration
+llm:
+  models:
+    - name: "o3"
+      weight: 1.0
+      api_base: "https://api.openai.com/v1"
+  temperature: 0.7
+  top_p: 0.95
+  max_tokens: 32000
+  timeout: 600
+
+# Prompt configuration
+prompt:
+  system_message: |
+    You are a competitive programmer. You will be given a problem statement, please implement a solution in C++. The execution time and memory limit are also stated in the statement so be aware of the complexity of the program. Your response should ONLY contain the C++ code, with no additional explanation or text.
+    
+    Problem:
+    
+    Problem: Hamiltonian Path Challenge
+    
+    You are given a directed graph with n vertices and m edges.  
+    Your task is to find a path that visits each vertex exactly once.  
+    
+    If it is not possible to find a Hamiltonian path, you should instead output a path that is as long as possible and does not repeat vertices.  
+    
+    ----------------------------------------
+    Input
+    The first line contains two integers n, m.  
+    The second line contains 10 integers, where the i-th number is a_i, the scoring parameter.  
+    Each of the next m lines contains two integers u, v, representing a directed edge from u to v.
+    
+    ----------------------------------------
+    Output
+    Output two lines:
+    
+    - The first line contains an integer k, the number of vertices in your path.  
+    - The second line contains k integers, the sequence of vertices in the path.
+    
+    ----------------------------------------
+    Sample 1
+    Input:
+    3 3
+    3 3 3 3 3 3 3 3 3 3
+    1 2
+    1 3
+    2 3
+    
+    Output:
+    3
+    1 2 3
+    
+    Explanation:
+    Edges are directed.  
+    In this case, the contestant’s submission scores 10 points.
+    
+    ----------------------------------------
+    Sample 2
+    Input:
+    4 4
+    1 1 2 2 3 3 4 4 4 4
+    1 2
+    2 1
+    1 3
+    4 2
+    
+    Output:
+    2
+    2 1
+    
+    Explanation:
+    In this case, the submission scores 4 points.  
+    Note: you do not need to output the optimal solution.
+    
+    ----------------------------------------
+    Scoring
+    - If your output is invalid, your score is 0.  
+    - Otherwise, let k be the number of vertices in your path.  
+      Your score is equal to:  
+    
+      sum_{i=1}^{10} [k ≥ a_i]  
+    
+    That is, the number of a_i values that are less than or equal to your k.
+    
+    ----------------------------------------
+    Constraints
+    - 1 ≤ n, m ≤ 500000  
+    - No multiple edges, no self-loops  
+    - At least one Hamiltonian path exists in the graph
+    
+    ----------------------------------------
+    Time Limit: 4 second  
+    Memory Limit: 512 MB
+  num_top_programs: 3
+  use_template_stochasticity: true
+
+# Database configuration
+database:
+  population_size: 50
+  archive_size: 20
+  num_islands: 3
+  elite_selection_ratio: 0.2
+  exploitation_ratio: 0.7
+
+# Evaluator configuration
+evaluator:
+  timeout: 40
+  cascade_evaluation: false
+  cascade_thresholds: [0.5, 0.75]
+  parallel_evaluations: 4
+  use_llm_feedback: false
+
+# Evolution settings
+diff_based_evolution: false
+allow_full_rewrites: true
+max_code_length: 60000

@@ -1,0 +1,18 @@
+{
+  "fitness_improved": "Fitness improved: {prev:.4f} → {current:.4f}",
+  "fitness_declined": "Fitness declined: {prev:.4f} → {current:.4f}. Consider revising recent changes.",
+  "fitness_stable": "Fitness unchanged at {current:.4f}",
+  "exploring_region": "Exploring {features} region of solution space",
+  "metrics_label": "Metrics: {metrics}",
+  "outcome_all_improved": "All metrics improved",
+  "outcome_all_regressed": "All metrics regressed",
+  "outcome_mixed": "Mixed results",
+  "outcome_fitness_improved": "Fitness improved (exploring new features)",
+  "key_features_prefix": "Strong in",
+  "code_too_long": "Consider simplifying - code length exceeds {threshold} characters",
+  "no_specific_guidance": "Focus on improving fitness while maintaining diversity",
+  "metrics_improved": "Metrics showing improvement: {metrics}. Consider continuing with similar approaches.",
+  "metrics_regressed": "Metrics showing changes: {metrics}. Consider different approaches in these areas.",
+  "code_simplification": "Consider simplifying the code to improve readability and maintainability",
+  "default_improvement": "Focus on improving the fitness score while exploring diverse solutions"
+}
