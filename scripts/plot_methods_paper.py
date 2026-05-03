@@ -130,7 +130,7 @@ def get_metric_name(prob_name: str) -> str:
     if prob_name == "vidur":
         return "Avg RT (s)"
     elif prob_name == "cloudcast":
-        return "Avg Cost ($)"
+        return "Cost ($)"
     elif prob_name == "eplb":
         return "Score"
     elif prob_name == "llm_sql":
@@ -2776,6 +2776,10 @@ def plot_best_of_n_envelope(data: Dict[str, Any], save_path: str, max_num_sims: 
             color = METHOD_COLORS["Glia Best of 4 (o3)"]
             # two dot one dash
             linestyle = METHOD_LINES["Glia Best of 4 (o3)"]
+        if n == 6:
+            label = METHOD_NAMES["Glia Best of 4 (o3)"].replace("4", "6")
+            color = "cyan"
+            linestyle = "dashed"
         if os.path.exists(f"{save_path}_best_of_n_x_{n}.json"):
             with open(f"{save_path}_best_of_n_x_{n}.json", "r") as f:
                 x = json.load(f)
