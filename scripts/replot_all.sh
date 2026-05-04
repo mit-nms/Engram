@@ -21,14 +21,22 @@ case "$input" in
         dl_dir="$(realpath "$(dirname "$0")")/_downloaded_results"
         mkdir -p "$dl_dir"
         zip_path="$dl_dir/$(basename "${input%%\?*}")"
-        echo "Downloading $input -> $zip_path (resumable)..."
-        until curl -L --fail --progress-bar -C - -o "$zip_path" "$input"; do
-            echo "Download interrupted; retrying in 10s..."; sleep 10
-        done
         extract_dir="$dl_dir/extracted"
-        rm -rf "$extract_dir"; mkdir -p "$extract_dir"
-        echo "Unzipping into $extract_dir..."
-        unzip -q "$zip_path" -d "$extract_dir"
+        if [ -d "$extract_dir" ] && [ -n "$(ls -A "$extract_dir" 2>/dev/null)" ]; then
+            echo "Using existing extraction: $extract_dir (skipping download and unzip)"
+        else
+            if [ -f "$zip_path" ] && unzip -tq "$zip_path" >/dev/null 2>&1; then
+                echo "Using existing download: $zip_path"
+            else
+                echo "Downloading $input -> $zip_path (resumable)..."
+                until curl -L --fail --progress-bar -C - -o "$zip_path" "$input"; do
+                    echo "Download interrupted; retrying in 10s..."; sleep 10
+                done
+            fi
+            mkdir -p "$extract_dir"
+            echo "Unzipping into $extract_dir..."
+            unzip -q "$zip_path" -d "$extract_dir"
+        fi
         ;;
     *.zip)
         zip_path=$(realpath "$input")
@@ -36,9 +44,13 @@ case "$input" in
             echo "Error: zip file not found: $zip_path"; exit 1
         fi
         extract_dir="$(dirname "$zip_path")/$(basename "$zip_path" .zip)_extracted"
-        rm -rf "$extract_dir"; mkdir -p "$extract_dir"
-        echo "Unzipping $zip_path -> $extract_dir..."
-        unzip -q "$zip_path" -d "$extract_dir"
+        if [ -d "$extract_dir" ] && [ -n "$(ls -A "$extract_dir" 2>/dev/null)" ]; then
+            echo "Using existing extraction: $extract_dir (skipping unzip)"
+        else
+            mkdir -p "$extract_dir"
+            echo "Unzipping $zip_path -> $extract_dir..."
+            unzip -q "$zip_path" -d "$extract_dir"
+        fi
         ;;
     *)
         extract_dir=$(realpath "$input")
