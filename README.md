@@ -59,8 +59,8 @@ Engram is implemented using the [DeepAgents](https://github.com/langchain-ai/dee
 ### Installation
 
 ```bash
-git clone --recurse-submodules https://github.com/mit-nms/Glia.git
-cd Glia
+git clone --recurse-submodules https://github.com/mit-nms/Engram.git
+cd Engram
 # If you cloned without --recurse-submodules, run:
 #   git submodule update --init --recursive
 
