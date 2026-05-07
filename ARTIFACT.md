@@ -230,3 +230,25 @@ Global environment variables:
 
 Adding new benchmarks: see `SystemBench/README.md` for the evaluator
 interface and `examples/README.md` for the example-script pattern.
+
+## Replicating paper results
+
+The `replot_all.sh` downloads the full results bundle from Zenodo (~9.4 GB), unzips it, rewrites the JSON paths, and regenerates all paper plots into `Camera_ready_Engram/`. Re-runs reuse the existing download and extraction.
+
+The extracted results are in `_downloaded_results/extracted/engram_paper_results/` for inspection — one subdirectory per experiment (e.g. `cloudcast_my_prompt/`, `vidur_baseline/`, `cloudcast_ablation/`, …). The raw source results (CSVs, traces, etc. that the JSONs point to) live under the extraction.
+
+```bash
+git clone git@github.com:mit-nms/Engram.git
+cd Engram
+# Activate your environment
+cd scripts
+bash replot_all.sh  # Downloads a .zip file, unzips the results, and regenerates plots
+```
+
+| Item | Size |
+|---|---|
+| Downloaded zip | 8.8 GB |
+| Extracted results | 57 GB |
+| Generated plots | ~9 MB |
+
+Peak usage during the run is ~66 GB (zip + extraction held simultaneously). After plotting you can delete the zip to recover 8.8 GB. The extraction must stay if you want to re-run plots; otherwise delete it too and only the ~9 MB of plots remain.
